@@ -2,26 +2,31 @@ package com.revature.bank;
 import java.sql.*;  
 
 public class DataManager{  
-//mvn install:install-file -Dfile=c:/db/postgresql-42.2.6.jar -DgroupId=org.postgresql -DartifactId=postgresql -Dversion=14.2.6 -Dpackaging=jar
-    public void test() {
+
+    Connection conn;
+
+    private String login_name=null;
+    public DataManager() {
 
         // auto close connection
-        try (Connection conn = DriverManager.getConnection(
-                "jdbc:postgresql://localhost:5432/test", "postgres", "none")) {
+        try  {
+
+             conn = DriverManager.getConnection(
+                "jdbc:postgresql://localhost:5432/test", "postgres", "none");
 
             if (conn != null) {
-                System.out.println("Connected to the database!");
-                printTable(conn);
+                
+                
             } else {
                 System.out.println("Failed to make connection!");
             }
 
-            conn.close();
+            
             
         } catch (SQLException e) {
             System.err.format("SQL State: %s\n%s", e.getSQLState(), e.getMessage());
         } catch (Exception e) {
-            e.printStackTrace();
+            e.getMessage();
         }finally{
             
         }
@@ -30,7 +35,7 @@ public class DataManager{
     }
 
 
-    public void printTable(Connection conn){
+    public void register(){
         System.out.println("printing table.");
         String query = "select * from test";
         Statement stmt; 
@@ -57,8 +62,81 @@ public class DataManager{
             
         }
 
-        System.exit(0); // added for maven
+        
     }
+
+
+    
+    public void printTable(){
+        
+        String query = "select * from account";
+        Statement stmt; 
+        try{
+            
+            stmt = conn.createStatement(); 
+            ResultSet rs = stmt.executeQuery(query);
+            ResultSetMetaData rsmd = rs.getMetaData();
+
+            
+           
+            
+            while (rs.next()) {
+                String username = rs.getString("username");
+                String password = rs.getString("password");
+                String id = rs.getString("user_id");
+                System.out.println(id + "  "+username+"  "+password);
+            }
+
+            stmt.close();
+            rs.close();
+
+        }catch(Exception  e){
+            System.err.format("ERROR: \n%s", e.getMessage());
+        }finally{
+            
+        }
+
+        
+    }
+
+    public String login(String username,String passowrd){
+
+        String query = "select user_id from account where username='%s' and password='%s'"; //TODO change to prepared statment
+        query  = String.format(query, username,passowrd);
+        Statement stmt; 
+        try{
+            
+            stmt = conn.createStatement(); 
+            ResultSet rs = stmt.executeQuery(query);
+            ResultSetMetaData rsmd = rs.getMetaData();
+
+            
+           
+            
+            if (rs.next()) {
+                
+                
+                String id = rs.getString("user_id");
+                System.out.println("logged in as "+username);
+                System.out.println("your id is: "+id);
+                this.login_name=username;
+            }else{
+                System.out.println("username or password was incorrect.");
+            }
+
+            stmt.close();
+            rs.close();
+
+        }catch(Exception  e){
+            System.err.format("ERROR: \n%s", e.getMessage());
+        }finally{
+            
+        }
+
+        return username;
+
+    }
+    
 } 
 
 
