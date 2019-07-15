@@ -35,7 +35,7 @@ public class DataManager{
     }
 
 
-    public void register(){
+    public void print(){
         System.out.println("printing table.");
         String query = "select * from test";
         Statement stmt; 
@@ -99,10 +99,10 @@ public class DataManager{
         
     }
 
-    public String login(String username,String passowrd){
+    public String login(String username,String password){
 
         String query = "select user_id from account where username='%s' and password='%s'"; //TODO change to prepared statment
-        query  = String.format(query, username,passowrd);
+        query  = String.format(query, username,password);
         Statement stmt; 
         try{
             
@@ -134,6 +134,84 @@ public class DataManager{
         }
 
         return username;
+
+    }
+
+    public void logout(){
+        this.login_name="";
+        
+    }
+    public void register(String username,String password){
+        
+        if(usernameExsists(username)){
+            System.out.println("that username already exsists.");
+            return;
+        }else{
+            System.out.println("new user registered.");
+        }
+
+           
+        addNewUser(username,password);
+
+    }
+
+    public void addNewUser(String username,String password){
+        String query = " insert into account (username,password) values ('%s','%s');"; //TODO change to prepared statment
+        query  = String.format(query, username,password);
+        Statement stmt; 
+        try{
+            
+            stmt = conn.createStatement(); 
+            stmt.executeUpdate(query);
+    
+            stmt.close();
+            
+
+        }catch(Exception  e){
+            System.err.format("ERROR: \n%s", e.getMessage());
+        }finally{
+            
+        }
+
+        
+    }
+
+
+    public Boolean usernameExsists(String username){
+        boolean result=false;
+        String query = "select user_id from account where username='%s' "; //TODO change to prepared statment
+        query  = String.format(query, username);
+        Statement stmt; 
+        try{
+            
+            stmt = conn.createStatement(); 
+            ResultSet rs = stmt.executeQuery(query);
+            ResultSetMetaData rsmd = rs.getMetaData();
+
+            
+           
+            
+            if (rs.next()) {
+                
+                
+                
+                
+                result=true;
+                //this.login_name=username;
+            }else{
+                //
+            }
+
+            stmt.close();
+            rs.close();
+
+        }catch(Exception  e){
+            System.err.format("ERROR: \n%s", e.getMessage());
+        }finally{
+            
+        }
+
+        return result;
 
     }
     
