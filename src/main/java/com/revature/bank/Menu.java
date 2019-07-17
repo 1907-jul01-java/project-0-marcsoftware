@@ -11,7 +11,7 @@ public class Menu {
     
         session = new DataManager();
         clearScreen(); // for consistancy
-        System.out.println("---CLI---");
+     
 
         Scanner reader = new Scanner(System.in);  
         
@@ -36,7 +36,9 @@ public class Menu {
             case "clear":
                 clearScreen();
                 break;
-            
+            case "listaccounts":
+                listAccounts();
+                break;
             case "print":
                 printTable();
                 break;
@@ -71,7 +73,10 @@ public class Menu {
                 break; 
             case "withdraw":
                 withdraw(args);
-                break;                           
+                break; 
+            case "transfer":
+                transfer(args);
+                break;                              
             case "exit":
                 System.exit(0); // added for maven
                 break;
@@ -85,6 +90,16 @@ public class Menu {
 
     public void deposit(String[] args){
         session.deposit(args);
+    }
+
+
+    public void listAccounts(){
+        session.listAccounts();
+    }
+
+
+    public void transfer(String[] args){
+        session.transfer(args);
     }
 
     public void withdraw(String[] args){

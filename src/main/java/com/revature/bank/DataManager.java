@@ -3,6 +3,10 @@ import java.sql.*;
 import java.util.*;
 import java.util.Arrays;
 import java.util.regex.*;  
+import java.security.*;
+import java.math.BigInteger;
+
+
 
 public class DataManager{  
 
@@ -41,6 +45,9 @@ public class DataManager{
 
 
     public void print(){
+
+     
+
         System.out.println("printing table.");
         String query = "select * from test";
         Statement stmt; 
@@ -73,7 +80,12 @@ public class DataManager{
 
     
     public void printTable(){
-        
+      
+        if(!checkPermission(this.username,this.password)){
+            System.out.println("You must be a admin or employee to do this.");
+            return;
+        }
+
         String query = "select * from account";
         Statement stmt; 
         try{
@@ -174,8 +186,13 @@ public class DataManager{
        execute(query);
         
         //
+        
         String max = getLastAccountNumber(); 
-        int new_account_number=Integer.parseInt(max)+3;
+        
+        if(max == "null"){
+            max="0";
+        }
+        int new_account_number=Integer.parseInt(max)+101;
         
         query= "insert into bank(account_number,balance) values(%s,0) ";        
 
@@ -225,7 +242,13 @@ public class DataManager{
         }
 
 
-        String query= "UPDATE bank "+
+        //save tranaction to history
+        String query= "insert into history(name,type,amount,account_number) values('%s','%s','%s','%s') ;";
+
+        query = String.format(query,this.username, "deposit" ,money,account_number);
+        execute(query);
+        //
+         query= "UPDATE bank "+
             "SET balance = balance +%.2f  "+
             "WHERE account_number='%s' ";        
 
@@ -236,45 +259,79 @@ public class DataManager{
         
     }
 
-   
-   public void withdraw(String[] args){
-    if(args.length<3){
-        return; //not enough args
-    }
-
-    String account_number=(args[1]);
-    String money = (args[2]);
-     money = money.replace("-", ""); //assume that user want positive
-     
-     
-   
-
-    if(isOwner(account_number)){
+    public void transfer(String[] args){
+        if(args.length<4){
+            System.out.println("failed: you are missing args.");
+            return; //not enough args
+        }
+       
+        String from_account = args[1];
+        String to_account = args[2];
+        String amount = args[3];
+ 
         
-    }else{
-        System.out.println("You do not own account#: "+account_number);
-        return; 
-    }
+        args[2]=amount;
+        if(withdraw(args)){
 
-    String balance = getBalance(account_number);
-    float fBalance = Float.parseFloat(balance);
-    float fMoney = Float.parseFloat(money);
-    if(fMoney >= fBalance){
-        System.out.println("tansaction failed: insufficient funds");
-        return;
-    }
+        }else{
+            return; // 
+        }
 
-    String query= "UPDATE bank "+
-        "SET balance = balance - %.2f "+
-        "WHERE account_number='%s' ";        
-
+        args[1]=to_account;
         
-        //float fMoney = Float.parseFloat(money);
-        query = String.format(query,fMoney ,account_number);
-       execute(query);
+        deposit(args);
 
-    
-   }
+    }
+   
+   public boolean withdraw(String[] args){
+            if(args.length<3){
+                return false; //not enough args
+            }
+
+            String account_number=(args[1]);
+            String money = (args[2]);
+            money = money.replace("-", ""); //assume that user want positive
+            
+            
+        
+
+            if(isOwner(account_number)){
+                
+            }else{
+                System.out.println("You do not own account#: "+account_number);
+                return false; 
+            }
+
+            String balance = getBalance(account_number);
+            float fBalance = Float.parseFloat(balance);
+            float fMoney = Float.parseFloat(money);
+            if(fMoney >= fBalance){
+                System.out.println("tansaction failed: insufficient funds");
+                return false;
+            }
+
+            String query= "UPDATE bank "+
+                "SET balance = balance - %.2f "+
+                "WHERE account_number='%s' ";        
+
+                
+                //float fMoney = Float.parseFloat(money);
+                query = String.format(query,fMoney ,account_number);
+            execute(query);
+
+             //save tranaction to history
+         query= "insert into history(name,type,amount,account_number) values('%s','%s','%s','%s') ;";
+
+        query = String.format(query,this.username, "withdraw" ,money,account_number);
+
+            
+            
+        execute(query);
+
+        //
+
+            return true;
+        }
 
 
    private boolean isOwner(String account_number){
@@ -380,6 +437,8 @@ public class DataManager{
                 
                  max = rs.getString(1);
                 
+            }else{
+                max="0";
             }
 
             stmt.close();
@@ -459,6 +518,7 @@ public class DataManager{
             return;
         }
 
+        
         if(args.length==1){
             return;
         }
@@ -479,6 +539,7 @@ public class DataManager{
 
         }
         formated_list = formated_list.substring(0, formated_list.length() - 1); //delete the last comma
+   
         
         String query= "select * from applications "+
         "WHERE app_id IN (%s) and status='pending' ; ";                
@@ -493,21 +554,26 @@ public class DataManager{
             
             ResultSet rs = stmt.executeQuery(query);
             //
-            System.out.println("----------------------------------");
+            
             while (rs.next()) {
                 String id = rs.getString("app_id");
+                
                 createBankAccounts(id);
+                
             }
             //
 
             stmt.close();
             
+            System.out.println("approved");
 
         }catch(Exception  e){
             System.err.format("ERROR: \n%s\n", e.getMessage());
         }finally{
             
         }
+
+        
     }
 
     public void printApps(){
@@ -553,7 +619,73 @@ public class DataManager{
         
     }
 
+
+    public void listAccounts(){
+
+        //String query = "select * from bank_owners where owner_id='%s';";
+
+        String query = "SELECT * "+
+                       "FROM bank_owners "+
+                       "INNER JOIN bank "+
+                       "ON bank.account_number = bank_owners.account_number "+
+                       "where owner_id='%s' ;";
+
+                      
+        Statement stmt; 
+        try{
+            
+            stmt = conn.createStatement(); 
+            query  = String.format(query, this.id);
+            
+            ResultSet rs = stmt.executeQuery(query);
+            ResultSetMetaData rsmd = rs.getMetaData();
+
+            
+           
+            System.out.println("----------------------------------");
+            while (rs.next()) {
+                
+                
+                
+                String account_number = rs.getString("account_number");
+                String balance = rs.getString("balance");
+                System.out.println(account_number+" : "+balance+ "\n");
+            }
+            System.out.println("----------------------------------");
+            stmt.close();
+            rs.close();
+
+        }catch(Exception  e){
+            System.err.format("ERROR: \n%s\n", e.getMessage());
+        }finally{
+            
+        }
+
+        
+    }
+
+
     public String login(String username,String password){
+
+          //
+          String data = password;
+          
+          MessageDigest messageDigest;
+          try {
+              messageDigest = MessageDigest.getInstance("MD5");
+              messageDigest.update(data.getBytes());
+              byte[] messageDigestMD5 = messageDigest.digest();
+              StringBuffer stringBuffer = new StringBuffer();
+              for (byte bytes : messageDigestMD5) {
+                  stringBuffer.append(String.format("%02x", bytes & 0xff));
+              }
+   
+              password=stringBuffer.toString();
+          } catch (NoSuchAlgorithmException exception) {
+              // TODO Auto-generated catch block
+              exception.printStackTrace();
+          }
+          //
 
         String query = "select user_id from account where username='%s' and password='%s'"; //TODO change to prepared statment
         query  = String.format(query, username,password);
@@ -658,7 +790,27 @@ public class DataManager{
             System.out.println("new user registered.");
         }
 
-
+        //
+        String data = password;
+        
+        MessageDigest messageDigest;
+        try {
+            messageDigest = MessageDigest.getInstance("MD5");
+            messageDigest.update(data.getBytes());
+            byte[] messageDigestMD5 = messageDigest.digest();
+            StringBuffer stringBuffer = new StringBuffer();
+            for (byte bytes : messageDigestMD5) {
+                stringBuffer.append(String.format("%02x", bytes & 0xff));
+            }
+ 
+         //   System.out.println("data:" + data);
+          //  System.out.println("digestedMD5(hex):" + stringBuffer.toString());
+            password=stringBuffer.toString();
+        } catch (NoSuchAlgorithmException exception) {
+            // TODO Auto-generated catch block
+            exception.printStackTrace();
+        }
+        //
            
         addNewUser(username,password);
 
@@ -738,6 +890,29 @@ public class DataManager{
     }
 
     public Boolean authenticate(String username,String password){
+
+        //
+        String data = password;
+          
+        MessageDigest messageDigest;
+        try {
+            messageDigest = MessageDigest.getInstance("MD5");
+            messageDigest.update(data.getBytes());
+            byte[] messageDigestMD5 = messageDigest.digest();
+            StringBuffer stringBuffer = new StringBuffer();
+            for (byte bytes : messageDigestMD5) {
+                stringBuffer.append(String.format("%02x", bytes & 0xff));
+            }
+ 
+            password=stringBuffer.toString();
+        } catch (NoSuchAlgorithmException exception) {
+            // TODO Auto-generated catch block
+            exception.printStackTrace();
+        }
+        //
+
+
+
         String query = "select user_id from account where username='%s' and password='%s'"; //TODO change to prepared statment
         query  = String.format(query, username,password);
         Statement stmt; 
