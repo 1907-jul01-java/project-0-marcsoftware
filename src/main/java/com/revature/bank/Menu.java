@@ -4,11 +4,12 @@ import java.util.Scanner;
 
 public class Menu {
     
-    String login_name="";
+    
+    DataManager session;
 
     public void displayCLI() {
     
-
+        session = new DataManager();
         clearScreen(); // for consistancy
         System.out.println("---CLI---");
 
@@ -16,7 +17,7 @@ public class Menu {
         
         String s = "";
         while(!s.equals("exit")){
-            System.out.print(login_name+" > ");
+            System.out.print(session.username+" > ");
             s = reader.nextLine(); 
             parseInput(s);
         }
@@ -47,9 +48,30 @@ public class Menu {
             case "logout":
                 logout();
                 break;
+            case "open":
+                open();
+                break; 
+            case "apply":
+                apply();
+                break;  
+            case "approve":
+                approve(args);
+                break; 
+            case "reject":
+                reject(args);
+                break;              
             case "register":
                 register(args);
-                break;                
+                break;   
+            case "printapps":
+                printApps();
+                break;
+            case "deposit":
+                deposit(args);
+                break; 
+            case "withdraw":
+                withdraw(args);
+                break;                           
             case "exit":
                 System.exit(0); // added for maven
                 break;
@@ -61,7 +83,25 @@ public class Menu {
 
     }
 
+    public void deposit(String[] args){
+        session.deposit(args);
+    }
 
+    public void withdraw(String[] args){
+        session.withdraw(args);
+    }
+
+    void approve(String[] args){
+        session.approve(args);
+    }
+
+    void printApps(){
+        session.printApps();
+    }
+
+    void reject(String[] args){
+        session.reject(args);
+    }
      void clearScreen() {  
         System.out.println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"+
                             "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
@@ -70,8 +110,8 @@ public class Menu {
      void printTable(){
         System.out.println("________________________");
 
-        DataManager obj = new DataManager();
-        obj.printTable();
+        
+        session.printTable();
         System.out.println("________________________");
     }
 
@@ -114,16 +154,31 @@ public class Menu {
             password=args[2];
         }
         
-        DataManager obj = new DataManager();
-        this.login_name= obj.login(username,password);
+        
+        session.login(username,password);
         
     }
 
     void logout(){
-        DataManager obj = new DataManager();
-        this.login_name=""; //refactor
-         obj.logout();
+        
+        
+         session.logout();
     }
+
+
+    void open(){
+
+        
+        
+         session.open();
+    }
+
+    void apply(){
+
+        
+        
+        session.apply();
+   }
 
      /**
     The Desciption of the method to explain what the method does
@@ -158,9 +213,9 @@ public class Menu {
             password=args[2];
         }
         
-        DataManager obj = new DataManager();
         
-        obj.register(username,password);
+        
+        session.register(username,password);
         
     }
 
